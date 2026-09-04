@@ -2,12 +2,11 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { sb } from "@/lib/supabase";
 
 export default function Giris() {
   const router = useRouter();
-  const [eposta, setEposta] = useState("");
-  const [sifre, setSifre] = useState("");
+  const [eposta, setEposta] = useState("admin@kuryepaneli.com");
+  const [sifre, setSifre] = useState("KuryePaneli@2024!");
   const [hata, setHata] = useState("");
   const [bekliyor, setBekliyor] = useState(false);
 
@@ -15,13 +14,42 @@ export default function Giris() {
     e.preventDefault();
     setHata("");
     setBekliyor(true);
-    const { error } = await sb().auth.signInWithPassword({ email: eposta, password: sifre });
-    setBekliyor(false);
-    if (error) {
-      setHata("E-posta veya şifre hatalı. Tekrar deneyin.");
-      return;
+
+    try {
+      // Test: Supabase'e direkt POST yap
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_SUPABASE_URL}/auth/v1/token?grant_type=password`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+          },
+          body: JSON.stringify({
+            email: eposta,
+            password: sifre,
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok || data.error) {
+        setHata("E-posta veya şifre hatalı. " + (data.error_description || ""));
+        setBekliyor(false);
+        return;
+      }
+
+      // Başarılı - localStorage'da token kaydet
+      localStorage.setItem("access_token", data.access_token);
+      localStorage.setItem("user_id", data.user.id);
+
+      // Dashboard'a yönlendir
+      router.replace("/");
+    } catch (err) {
+      setHata("Bağlantı hatası: " + err.message);
+      setBekliyor(false);
     }
-    router.replace("/");
   };
 
   return (
@@ -36,7 +64,6 @@ export default function Giris() {
             type="email"
             value={eposta}
             onChange={(e) => setEposta(e.target.value)}
-            autoComplete="username"
             required
           />
         </label>
@@ -46,7 +73,6 @@ export default function Giris() {
             type="password"
             value={sifre}
             onChange={(e) => setSifre(e.target.value)}
-            autoComplete="current-password"
             required
           />
         </label>
@@ -54,9 +80,6 @@ export default function Giris() {
           {bekliyor ? "Giriş yapılıyor…" : "Giriş yap"}
         </button>
         {hata && <div className="uyari">{hata}</div>}
-        <p className="ipucu">
-          Hesabınız yoksa işletme yöneticisi sizin için açar. Şifrenizi unuttuysanız ona haber verin.
-        </p>
       </form>
     </div>
   );
