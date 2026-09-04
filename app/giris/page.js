@@ -16,38 +16,25 @@ export default function Giris() {
     setBekliyor(true);
 
     try {
-      // Test: Supabase'e direkt POST yap
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_SUPABASE_URL}/auth/v1/token?grant_type=password`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-          },
-          body: JSON.stringify({
-            email: eposta,
-            password: sifre,
-          }),
-        }
-      );
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: eposta, password: sifre }),
+      });
 
-      const data = await response.json();
+      const data = await res.json();
 
-      if (!response.ok || data.error) {
-        setHata("E-posta veya şifre hatalı. " + (data.error_description || ""));
+      if (!res.ok || data.error) {
+        setHata("Giriş başarısız: " + (data.error || "Bilinmeyen hata"));
         setBekliyor(false);
         return;
       }
 
-      // Başarılı - localStorage'da token kaydet
       localStorage.setItem("access_token", data.access_token);
-      localStorage.setItem("user_id", data.user.id);
-
-      // Dashboard'a yönlendir
+      localStorage.setItem("user_id", data.user_id);
       router.replace("/");
     } catch (err) {
-      setHata("Bağlantı hatası: " + err.message);
+      setHata("Hata: " + err.message);
       setBekliyor(false);
     }
   };
