@@ -1,0 +1,6 @@
+.env.local
+.env.*.local
+sema.sql
+DEPLOYMENT-STATUS.md
+QUICK-START.md
+CLAUDE.md
